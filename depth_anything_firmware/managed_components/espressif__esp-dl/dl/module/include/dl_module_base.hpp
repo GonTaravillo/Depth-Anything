@@ -47,7 +47,7 @@ public:
     virtual ~Module();
 
 #if CONFIG_SPIRAM
-    void *operator new(size_t size) { return heap_caps_malloc(size, MALLOC_CAP_SPIRAM); }
+    void *operator new(size_t size) { return tool::malloc_aligned(size, MALLOC_CAP_SPIRAM); }
 
     void operator delete(void *ptr) { heap_caps_free(ptr); }
 #endif
@@ -69,7 +69,7 @@ public:
     virtual std::vector<std::vector<int>> get_output_shape(std::vector<std::vector<int>> &input_shapes) = 0;
 
     /**
-     * @brief Build the module, high-level inferface for Module layer
+     * @brief Build the module, high-level interface for Module layer
      *
      * @param context   Model context including  all inputs and outputs and other runtime information
      * @param mode    Runtime mode, default is RUNTIME_MODE_AUTO

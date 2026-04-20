@@ -4,6 +4,7 @@
 #include "dl_module_clip.hpp"
 #include "dl_module_concat.hpp"
 #include "dl_module_conv.hpp"
+#include "dl_module_depth_to_space.hpp"
 #include "dl_module_div.hpp"
 #include "dl_module_elu.hpp"
 #include "dl_module_equal.hpp"
@@ -18,14 +19,18 @@
 #include "dl_module_hard_sigmoid.hpp"
 #include "dl_module_hard_swish.hpp"
 #include "dl_module_identity.hpp"
+#include "dl_module_insert_zeros.hpp"
+#include "dl_module_layer_normalization.hpp"
 #include "dl_module_leaky_relu.hpp"
 #include "dl_module_less.hpp"
 #include "dl_module_less_or_equal.hpp"
 #include "dl_module_log.hpp"
+#include "dl_module_log_softmax.hpp"
 #include "dl_module_lstm.hpp"
 #include "dl_module_lut.hpp"
 #include "dl_module_matmul.hpp"
 #include "dl_module_max_pool.hpp"
+#include "dl_module_mod.hpp"
 #include "dl_module_mul.hpp"
 #include "dl_module_neg.hpp"
 #include "dl_module_pad.hpp"
@@ -46,12 +51,15 @@
 #include "dl_module_reshape.hpp"
 #include "dl_module_resize.hpp"
 #include "dl_module_reverse_sequence.hpp"
+#include "dl_module_scatter_nd.hpp"
 #include "dl_module_sigmoid.hpp"
 #include "dl_module_slice.hpp"
 #include "dl_module_softmax.hpp"
+#include "dl_module_space_to_depth.hpp"
 #include "dl_module_split.hpp"
 #include "dl_module_sqrt.hpp"
 #include "dl_module_squeeze.hpp"
+#include "dl_module_streaming_cache.hpp"
 #include "dl_module_sub.hpp"
 #include "dl_module_swish.hpp"
 #include "dl_module_tanh.hpp"
@@ -75,7 +83,7 @@ public:
 
     /**
      * @brief Get instance of ModuleCreator by this function. It is only safe method to get instance of ModuleCreator
-     * becase ModuleCreator is a singleton class.
+     * because ModuleCreator is a singleton class.
      *
      * @return ModuleCreator instance pointer
      */
@@ -127,6 +135,7 @@ public:
             this->register_module("Mul", Mul::deserialize);
             this->register_module("Div", Div::deserialize);
             this->register_module("Pow", Pow::deserialize);
+            this->register_module("Mod", Mod::deserialize);
             this->register_module("Resize", Resize::deserialize);
             this->register_module("GlobalAveragePool", GlobalAveragePool::deserialize);
             this->register_module("AveragePool", AveragePool::deserialize);
@@ -154,11 +163,13 @@ public:
             this->register_module("Squeeze", Squeeze::deserialize);
             this->register_module("Unsqueeze", Unsqueeze::deserialize);
             this->register_module("Softmax", Softmax::deserialize);
+            this->register_module("LogSoftmax", LogSoftmax::deserialize);
             this->register_module("MaxPool", MaxPool::deserialize);
             this->register_module("Slice", Slice::deserialize);
             this->register_module("Pad", Pad::deserialize);
             this->register_module("MatMul", MatMul::deserialize);
             this->register_module("Neg", Neg::deserialize);
+            this->register_module("SpaceToDepth", SpaceToDepth::deserialize);
             this->register_module("Split", Split::deserialize);
             this->register_module("Gather", Gather::deserialize);
             this->register_module("Elu", Elu::deserialize);
@@ -168,6 +179,7 @@ public:
             this->register_module("Less", Less::deserialize);
             this->register_module("LessOrEqual", LessOrEqual::deserialize);
             this->register_module("ReverseSequence", ReverseSequence::deserialize);
+            this->register_module("ScatterND", ScatterND::deserialize);
             this->register_module("Identity", Identity::deserialize);
             this->register_module("Swish", Swish::deserialize);
             this->register_module("ReduceL1", ReduceL1::deserialize);
@@ -182,6 +194,10 @@ public:
             this->register_module("ReduceLogSumExp", ReduceLogSumExp::deserialize);
             this->register_module("GRU", GRU::deserialize);
             this->register_module("LSTM", LSTM::deserialize);
+            this->register_module("DepthToSpace", DepthToSpace::deserialize);
+            this->register_module("StreamingCache", StreamingCache::deserialize);
+            this->register_module("InsertZeros", InsertZeros::deserialize);
+            this->register_module("LayerNormalization", LayerNormalization::deserialize);
         }
     }
 

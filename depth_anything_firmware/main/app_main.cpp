@@ -53,7 +53,7 @@ void run_depth_anything()
     std::map<std::string, dl::TensorBase *> model_outputs = model->get_outputs();
     dl::TensorBase *model_output = model_outputs.begin()->second;
 
-    int input_elements = 3 * 224 * 224;
+    int input_elements = 3 * 192 * 192;
     printf("Allocating memory for %d floats...\n", input_elements);
     float *img_buffer = (float *)malloc(input_elements * sizeof(float));
     if (!img_buffer) {

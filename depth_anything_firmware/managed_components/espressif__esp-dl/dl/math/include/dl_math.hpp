@@ -37,6 +37,8 @@ inline float power(float x, int a)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#pragma GCC diagnostic ignored "-Wuninitialized"
+
 /**
  * @brief sqrt(x).
  *
@@ -55,7 +57,7 @@ inline float sqrt_quick(float x)
  * @param x as a base
  * @return 1/sqrt(x)
  */
-inline float sqrt_reciprocal_quick(float x)
+inline float fast_inv_sqrt(float x)
 {
     float xhalf = 0.5f * x;
     int i = *(int *)&x;             // get bits for floating value
@@ -291,7 +293,7 @@ public:
         float input_scale = DL_SCALE(in_exponent);
         m_quant_min = static_cast<int>(in_quant_min / input_scale) - 1;
         m_quant_max = static_cast<int>(in_quant_max / input_scale) + 1;
-        m_table = (float *)heap_caps_malloc((m_quant_max - m_quant_min + 1) * sizeof(float), caps);
+        m_table = (float *)tool::malloc_aligned((m_quant_max - m_quant_min + 1) * sizeof(float), caps);
 
         for (int i = m_quant_min; i <= m_quant_max; i++) {
             m_table[i - m_quant_min] = func(i * input_scale);
@@ -335,7 +337,7 @@ public:
         } else {
             m_quant_min = -m_quant_max;
         }
-        m_table = (float *)heap_caps_malloc((m_quant_max + 1) * sizeof(float), caps);
+        m_table = (float *)tool::malloc_aligned((m_quant_max + 1) * sizeof(float), caps);
 
         for (int i = 0; i <= m_quant_max; i++) {
             m_table[i] = sigmoid(i * input_scale);
@@ -388,7 +390,7 @@ public:
         } else {
             m_quant_min = -m_quant_max;
         }
-        m_table = (float *)heap_caps_malloc((m_quant_max + 1) * sizeof(float), caps);
+        m_table = (float *)tool::malloc_aligned((m_quant_max + 1) * sizeof(float), caps);
 
         for (int i = 0; i <= m_quant_max; i++) {
             m_table[i] = tanh(i * input_scale);
