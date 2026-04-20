@@ -407,3 +407,16 @@ def vit_nano(patch_size=16, num_register_tokens=0, **kwargs):
         **kwargs,
     )
     return model
+
+def vit_pico(patch_size=16, num_register_tokens=0, **kwargs):
+    model = DinoVisionTransformer(
+        patch_size=patch_size,
+        embed_dim=96,
+        depth=4,
+        num_heads=2,
+        mlp_ratio=2,
+        block_fn=partial(Block, attn_class=MemEffAttention),
+        num_register_tokens=num_register_tokens,
+        **kwargs,
+    )
+    return model

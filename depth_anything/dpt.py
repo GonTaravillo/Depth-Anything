@@ -124,13 +124,18 @@ class DPTHead(nn.Module):
         layer_3_rn = self.scratch.layer3_rn(layer_3)
         layer_4_rn = self.scratch.layer4_rn(layer_4)
         
-        path_4 = self.scratch.refinenet4(layer_4_rn, size=layer_3_rn.shape[2:])
-        path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=layer_2_rn.shape[2:])
-        path_2 = self.scratch.refinenet2(path_3, layer_2_rn, size=layer_1_rn.shape[2:])
+        # En vez de pedirle resizes a tamaños específicos mediante 'size', 
+        # forzamos el uso de 'scale_factor' para que PyTorch trace un nodo 
+        # Resize basado puramente en ratios multiplicadores (scales) 
+        # libres por completo de dependencias de tensores en ONNX.
+        path_4 = self.scratch.refinenet4(layer_4_rn, size=None)
+        path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=None)
+        path_2 = self.scratch.refinenet2(path_3, layer_2_rn, size=None)
         path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
         
         out = self.scratch.output_conv1(path_1)
-        out = F.interpolate(out, (int(patch_h * 14), int(patch_w * 14)), mode="bilinear", align_corners=True)
+        # 224 / 64 = 3.5
+        out = F.interpolate(out, scale_factor=3.5, mode="bilinear", align_corners=True)
         out = self.scratch.output_conv2(out)
         
         return out
@@ -140,9 +145,12 @@ class DPT_DINOv2(nn.Module):
     def __init__(self, encoder='vitl', features=256, out_channels=[256, 512, 1024, 1024], use_bn=False, use_clstoken=False, localhub=True, act_layer=nn.GELU):
         super(DPT_DINOv2, self).__init__()
         
-        assert encoder in ['vits', 'vitb', 'vitl', 'vitn']
+        assert encoder in ['vits', 'vitb', 'vitl', 'vitn', 'vitp']
         
-        if encoder == 'vitn':
+        if encoder == 'vitp':
+            features = 16
+            out_channels = [16, 32, 64, 64]
+        elif encoder == 'vitn':
             features = 32
             out_channels = [24, 48, 96, 192]
         elif encoder == 'vits':
@@ -152,9 +160,10 @@ class DPT_DINOv2(nn.Module):
 
         # in case the Internet connection is not stable, please load the DINOv2 locally
         if localhub:
-            self.pretrained = torch.hub.load('torchhub/facebookresearch_dinov2_main', 'dinov2_{:}14'.format(encoder), source='local', pretrained=False, act_layer=act_layer)
+            self.pretrained = torch.hub.load('torchhub/facebookresearch_dinov2_main', 'dinov2_{:}14'.format(encoder), source='local', pretrained=False, act_layer=act_layer, img_size=192, patch_size=16)
         else:
-            self.pretrained = torch.hub.load('facebookresearch/dinov2', 'dinov2_{:}14'.format(encoder), act_layer=act_layer)
+            self.pretrained = torch.hub.load('facebookresearch/dinov2', 'dinov2_{:}14'.format(encoder), act_layer=act_layer, img_size=192, patch_size=16)
+
         
         dim = self.pretrained.blocks[0].attn.qkv.in_features
         
@@ -162,20 +171,24 @@ class DPT_DINOv2(nn.Module):
         self.depth_head = DPTHead(1, dim, features, use_bn, out_channels=out_channels, use_clstoken=use_clstoken, act_layer=act_layer)
         
     def forward(self, x):
-        h, w = x.shape[-2:]
+        # h, w = x.shape[-2:]
+        # Fijamos las dimensiones para la exportación estática a ESP32 (sin requerir onnxsim)
+        h, w = 192, 192
         
         features = self.pretrained.get_intermediate_layers(x, 4, return_class_token=True)
         
-        patch_h, patch_w = h // 14, w // 14
+        patch_h, patch_w = h // 16, w // 16
 
         depth = self.depth_head(features, patch_h, patch_w)
-        depth = F.interpolate(depth, size=(h, w), mode="bilinear", align_corners=True)
+        # depth = F.interpolate(depth, size=(h, w), mode="bilinear", align_corners=True)
         
         # Solo aplicamos la activación final si NO es ReLU, para evitar el colapso a negro en el Nano
         if not isinstance(self.activation, nn.ReLU):
             depth = self.activation(depth)
 
-        return depth.squeeze(1)
+        # Usamos reshape en lugar de squeeze(1) para evitar que el exportador
+        # de ONNX genere un bloque condicional "If" no soportado por ESP-DL
+        return torch.reshape(depth, (depth.shape[0], depth.shape[2], depth.shape[3]))
 
 
 class DepthAnything(DPT_DINOv2, PyTorchModelHubMixin):

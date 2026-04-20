@@ -100,7 +100,7 @@ def pack_models(model_path_or_dir, out_file="models.espdl"):
     }
 
     model_path: the path of models
-    out_file: the ouput binary filename
+    out_file: the output binary filename
     """
 
     if len(model_path_or_dir) == 1:
@@ -114,7 +114,7 @@ def pack_models(model_path_or_dir, out_file="models.espdl"):
         model_files = []
         for model_path in sorted(model_path_or_dir):
             model_path = Path(model_path)
-            assert model_path.is_file(), "invalid model_path."
+            assert model_path.is_file(), f"invalid model_path.{str(model_path)}"
             model_files.append(model_path)
 
     model_formats = [get_model_format(file) for file in model_files]
@@ -164,6 +164,8 @@ def pack_models(model_path_or_dir, out_file="models.espdl"):
         header_bin += struct.pack("I", name_offset)
         header_bin += struct.pack("I", len(name))
     out_bin = header_bin + name_bin + padding_bin + data_bin
+    output_path = Path(out_file).parent
+    output_path.mkdir(parents=True, exist_ok=True)
     with open(out_file, "wb") as f:
         f.write(out_bin)
 
