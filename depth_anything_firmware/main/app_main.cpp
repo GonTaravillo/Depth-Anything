@@ -53,29 +53,32 @@ void run_depth_anything()
     std::map<std::string, dl::TensorBase *> model_outputs = model->get_outputs();
     dl::TensorBase *model_output = model_outputs.begin()->second;
 
-    int input_elements = 3 * 192 * 192;
-    printf("Allocating memory for %d floats...\n", input_elements);
-    float *img_buffer = (float *)malloc(input_elements * sizeof(float));
-    if (!img_buffer) {
+    int width = 112;
+    int height = 112;
+    int channels = 3;
+    
+    printf("Allocating memory for %d floats...\n", width * height * channels);
+    float *input_data = (float *)heap_caps_malloc(width * height * channels * sizeof(float), MALLOC_CAP_SPIRAM);
+    if (!input_data) {
         printf("Failed to allocate image buffer.\n");
         delete model;
         return;
     }
 
     printf("Reading image from Flash...\n");
-    size_t expected_size = input_elements * sizeof(float);
+    size_t expected_size = width * height * channels * sizeof(float);
     size_t image_size = image_bin_end - image_bin_start;
     
     if (image_size != expected_size) {
         printf("Flash image size mismatch. Expected %u bytes, got %u bytes.\n", (unsigned int)expected_size, (unsigned int)image_size);
     } else {
-        memcpy(img_buffer, image_bin_start, expected_size);
-        printf("Copied %d floats from flash.\n", input_elements);
+        memcpy(input_data, image_bin_start, expected_size);
+        printf("Copied %d floats from flash.\n", width * height * channels);
         printf("Quantizing input data into Model tensor...\n");
         int8_t *input_ptr = (int8_t *)model_input->data;
         int exponent = model_input->exponent; // scale
-        for (int i = 0; i < input_elements; i++) {
-            input_ptr[i] = dl::quantize<int8_t>(img_buffer[i], DL_RESCALE(exponent));
+        for (int i = 0; i < width * height * channels; i++) {
+            input_ptr[i] = dl::quantize<int8_t>(input_data[i], DL_RESCALE(exponent));
         }
 
         printf("Running Model Inference...\n");
@@ -85,14 +88,24 @@ void run_depth_anything()
         printf("Inference completed in %lld ms\n", (end_time - start_time) / 1000);
 
         printf("Processing Output Tensor...\n");
-        int output_elements = 16 * 16;
         int8_t *output_ptr = (int8_t *)model_output->data;
         int out_exponent = model_output->exponent;
 
         float min_depth = 999999.0f;
         float max_depth = -999999.0f;
 
-        // Extract and dequantize
+        std::vector<int> out_shape = model_output->get_shape();
+        int output_elements = 1;
+        for (int dim : out_shape) {
+            output_elements *= dim;
+        }
+
+        printf("Output tensor shape: ");
+        for (int dim : out_shape) {
+            printf("%d ", dim);
+        }
+        printf("\n");
+
         float* out_floats = (float*)malloc(output_elements * sizeof(float));
         for (int i = 0; i < output_elements; i++) {
             float val = dl::dequantize(output_ptr[i], DL_SCALE(out_exponent));
@@ -101,13 +114,16 @@ void run_depth_anything()
             if (val > max_depth) max_depth = val;
         }
 
-        printf("\n--- Depth Anything Nano (224x224) Results ---\n");
-        printf("Output Map: 16x16\n");
+        printf("\n--- Depth Anything Nano Results ---\n");
         printf("Min Depth: %.4f | Max Depth: %.4f\n", min_depth, max_depth);
         printf("\nCenter 4x4 Output block:\n");
-        for (int row = 6; row < 10; row++) {
-            for (int col = 6; col < 10; col++) {
-                printf("%6.2f ", out_floats[row * 16 + col]);
+        int center_x = out_shape[2] / 2;
+        int center_y = out_shape[1] / 2;
+        for (int y = center_y - 2; y < center_y + 2; y++) {
+            for (int x = center_x - 2; x < center_x + 2; x++) {
+                if (y >= 0 && y < out_shape[1] && x >= 0 && x < out_shape[2]) {
+                    printf("%6.2f ", out_floats[y * out_shape[2] + x]);
+                }
             }
             printf("\n");
         }
@@ -118,7 +134,7 @@ void run_depth_anything()
         free(out_floats);
     }
     
-    free(img_buffer);
+    free(input_data);
     delete model;
 }
 

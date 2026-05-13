@@ -26,8 +26,13 @@ def export_to_onnx(checkpoint_path, output_path):
     model.load_state_dict(state_dict)
     model.eval()
     
-    # 224x224 is a 16x16 patch resolution for DINOv2 / DepthAnything models
-    dummy_input = torch.randn(1, 3, 224, 224)
+    # 112x112 is a 8x8 patch resolution for DINOv2 / DepthAnything models
+    dummy_input = torch.randn(1, 3, 112, 112)
+    
+    # Pre-interpolate the positional embeddings to avoid dynamic branches in ONNX
+    model.pretrained.pos_embed.data = model.pretrained.interpolate_pos_encoding(
+        torch.zeros(1, 65, 192), 112, 112
+    )
     
     print(f"Exporting model to {output_path}...")
     torch.onnx.export(
@@ -44,5 +49,5 @@ def export_to_onnx(checkpoint_path, output_path):
 
 if __name__ == "__main__":
     checkpoint = "checkpoints/depth_anything_nano_epoch_10.pth"
-    output_onnx = "depth_anything_nano_epoch10_224x224.onnx"
+    output_onnx = "depth_anything_nano_epoch10_112x112.onnx"
     export_to_onnx(checkpoint, output_onnx)

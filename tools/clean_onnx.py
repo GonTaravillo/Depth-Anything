@@ -58,7 +58,7 @@ def clean_onnx(input_path, output_path):
                     # Heuristic for ViT tokens if inference failed
                     if not in_shape or not all(d > 0 for d in in_shape):
                         if "/norm" in node.input[0]:
-                             in_shape = [1, 257, 192]
+                             in_shape = [1, 65, 192]
                     
                     if in_shape:
                         new_ends_val = ends_val.copy()
@@ -90,8 +90,12 @@ def clean_onnx(input_path, output_path):
             in_shape = get_real_shape(node.input[0])
             
             # Special case for patch_embed shape
-            if "/patch_embed/Shape" in node.name or not in_shape:
-                 in_shape = [1, 192, 16, 16]
+            if "/patch_embed/Shape" in node.name:
+                 in_shape = [1, 192, 8, 8]
+            elif "attn/Shape" in node.name:
+                 in_shape = [1, 65, 192]
+            elif not in_shape:
+                 in_shape = [1, 192, 8, 8]
 
             print(f"  Replacing Shape '{node.name}' with Constant {in_shape}")
             const_node = helper.make_node(
@@ -146,4 +150,4 @@ def clean_onnx(input_path, output_path):
     print(f"Saved to: {output_path}")
 
 if __name__ == "__main__":
-    clean_onnx('depth_anything_nano_epoch10_224x224.onnx', 'depth_anything_nano_epoch10_224x224.onnx')
+    clean_onnx('depth_anything_nano_epoch10_112x112.onnx', 'depth_anything_nano_epoch10_112x112.onnx')

@@ -44,11 +44,11 @@ def main():
     
     TARGET = "esp32s3"
     NUM_OF_BITS = 8
-    NETWORK_INPUTSHAPE = [1, 3, 224, 224]
+    NETWORK_INPUTSHAPE = [1, 3, 112, 112]
     EXECUTING_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    onnx_file = 'depth_anything_nano_epoch10_224x224.onnx'
-    espdl_file = os.path.join(WORKING_DIRECTORY, 'depth_anything_nano_epoch10_224x224.espdl')
+    onnx_file = 'depth_anything_nano_epoch10_112x112.onnx'
+    espdl_file = os.path.join(WORKING_DIRECTORY, 'depth_anything_nano_epoch10_112x112.espdl')
     
     if not os.path.exists(onnx_file):
         raise FileNotFoundError(f"ONNX model file {onnx_file} not found. Please export it first.")
@@ -71,7 +71,7 @@ def main():
     if data_dir is None:
          raise FileNotFoundError("Could not find any directory with .jpg files for calibration.")
              
-    dataset = load_calibration_dataset(data_dir, num_samples=32, target_size=224)
+    dataset = load_calibration_dataset(data_dir, num_samples=32, target_size=112)
     if len(dataset) == 0:
         raise ValueError("Calibration dataset is empty!")
         

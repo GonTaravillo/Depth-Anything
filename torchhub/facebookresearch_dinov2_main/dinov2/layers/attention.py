@@ -48,9 +48,19 @@ class Attention(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         B, N, C = x.shape
-        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        qkv = self.qkv(x) # [B, N, 3*C]
+        
+        # Explicit slices to avoid ONNX chunking bugs
+        q = qkv[:, :, 0:C]
+        k = qkv[:, :, C:2*C]
+        v = qkv[:, :, 2*C:]
 
-        q, k, v = qkv[0] * self.scale, qkv[1], qkv[2]
+        # Reshape a 4D [B, N, num_heads, head_dim] y permute a [B, num_heads, N, head_dim]
+        head_dim = C // self.num_heads
+        q = q.reshape(B, N, self.num_heads, head_dim).permute(0, 2, 1, 3) * self.scale
+        k = k.reshape(B, N, self.num_heads, head_dim).permute(0, 2, 1, 3)
+        v = v.reshape(B, N, self.num_heads, head_dim).permute(0, 2, 1, 3)
+
         attn = q @ k.transpose(-2, -1)
 
         attn = attn.softmax(dim=-1)

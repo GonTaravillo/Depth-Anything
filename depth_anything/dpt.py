@@ -134,8 +134,8 @@ class DPTHead(nn.Module):
         path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
         
         out = self.scratch.output_conv1(path_1)
-        # 224 / 64 = 3.5
-        out = F.interpolate(out, scale_factor=3.5, mode="bilinear", align_corners=True)
+        # scale_factor 1.75 ensures the output matches the input size regardless of 112 or 224
+        out = F.interpolate(out, scale_factor=1.75, mode="bilinear", align_corners=True)
         out = self.scratch.output_conv2(out)
         
         return out
@@ -157,9 +157,9 @@ class DPT_DINOv2(nn.Module):
 
         # in case the Internet connection is not stable, please load the DINOv2 locally
         if localhub:
-            self.pretrained = torch.hub.load('torchhub/facebookresearch_dinov2_main', 'dinov2_{:}14'.format(encoder), source='local', pretrained=False, act_layer=act_layer, img_size=192, patch_size=16)
+            self.pretrained = torch.hub.load('torchhub/facebookresearch_dinov2_main', 'dinov2_{:}14'.format(encoder), source='local', pretrained=False, act_layer=act_layer)
         else:
-            self.pretrained = torch.hub.load('facebookresearch/dinov2', 'dinov2_{:}14'.format(encoder), act_layer=act_layer, img_size=192, patch_size=16)
+            self.pretrained = torch.hub.load('facebookresearch/dinov2', 'dinov2_{:}14'.format(encoder), act_layer=act_layer)
 
         
         dim = self.pretrained.blocks[0].attn.qkv.in_features
@@ -170,11 +170,11 @@ class DPT_DINOv2(nn.Module):
     def forward(self, x):
         # h, w = x.shape[-2:]
         # Fijamos las dimensiones para la exportación estática a ESP32 (sin requerir onnxsim)
-        h, w = 192, 192
+        h, w = 112, 112
         
         features = self.pretrained.get_intermediate_layers(x, 4, return_class_token=True)
         
-        patch_h, patch_w = h // 16, w // 16
+        patch_h, patch_w = h // 14, w // 14
 
         depth = self.depth_head(features, patch_h, patch_w)
         # depth = F.interpolate(depth, size=(h, w), mode="bilinear", align_corners=True)

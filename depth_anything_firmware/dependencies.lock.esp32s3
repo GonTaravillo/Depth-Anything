@@ -1,44 +1,19 @@
 dependencies:
   espressif/dl_fft:
-    component_hash: 7dadbd644c0d7ba4733cc3726ec4cff6edf27b043725e1115861dec1609a3d28
+    component_hash: ced3cf28cc70452b7859c06f4e5059215167254a2047e34c893d6f501ccd6ea2
     dependencies:
     - name: idf
       require: private
       version: '>=5.0'
     source:
-      registry_url: https://components.espressif.com
-      type: service
-    version: 0.3.1
-  espressif/esp-dl:
-    component_hash: 3988acc4c6114459c9134b65d9088195c14d43a80193fe2ca2785c1fe0390f36
-    dependencies:
-    - name: espressif/dl_fft
-      registry_url: https://components.espressif.com
-      require: private
-      version: '>=0.3.1'
-    - name: espressif/esp-dsp
-      registry_url: https://components.espressif.com
-      require: private
-      version: ==1.7.0
-    - name: espressif/esp_new_jpeg
-      registry_url: https://components.espressif.com
-      require: private
-      version: ^0.6.1
-    - name: idf
-      require: private
-      version: '*'
-    source:
       registry_url: https://components.espressif.com/
       type: service
-    targets:
-    - esp32
-    - esp32c2
-    - esp32c3
-    - esp32c5
-    - esp32c6
-    - esp32p4
-    - esp32s2
-    - esp32s3
+    version: 0.4.0
+  espressif/esp-dl:
+    dependencies: []
+    source:
+      path: /home/gonzalo/Documents/PFG/Depth-Anything_Nano_Copia/depth_anything_firmware/components/espressif__esp-dl
+      type: local
     version: 3.3.0
   espressif/esp-dsp:
     component_hash: 42dce32d46ac93dc11f60d368e29a830e9661c7345d794b8a45c343479cae636
@@ -47,14 +22,14 @@ dependencies:
       require: private
       version: '>=4.2'
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 1.7.0
   espressif/esp_new_jpeg:
     component_hash: e6af208a875abd0ecfc0213d3751a11b504b463ebde6930f24096047925fa5c1
     dependencies: []
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     targets:
     - esp32
@@ -71,7 +46,11 @@ dependencies:
       type: idf
     version: 5.5.1
 direct_dependencies:
+- espressif/dl_fft
 - espressif/esp-dl
-manifest_hash: a43fa4d9d729d11f160cb811e20087259d482c5645eb0f49891de8ec80221cf7
+- espressif/esp-dsp
+- espressif/esp_new_jpeg
+- idf
+manifest_hash: 89fc289882f08d4393a81dabfeda798dd0cb793107493e44e0b2d1c14755fcad
 target: esp32s3
 version: 2.0.0
