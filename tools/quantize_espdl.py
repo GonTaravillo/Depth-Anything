@@ -47,8 +47,8 @@ def main():
     NETWORK_INPUTSHAPE = [1, 3, 112, 112]
     EXECUTING_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
     
-    onnx_file = 'depth_anything_nano_epoch10_112x112.onnx'
-    espdl_file = os.path.join(WORKING_DIRECTORY, 'depth_anything_nano_epoch10_112x112.espdl')
+    onnx_file = 'depth_anything_nano_112x112_trained_clean.onnx'
+    espdl_file = os.path.join(WORKING_DIRECTORY, 'depth_anything_nano_112x112_trained.espdl')
     
     if not os.path.exists(onnx_file):
         raise FileNotFoundError(f"ONNX model file {onnx_file} not found. Please export it first.")

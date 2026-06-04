@@ -124,14 +124,16 @@ class DPTHead(nn.Module):
         layer_3_rn = self.scratch.layer3_rn(layer_3)
         layer_4_rn = self.scratch.layer4_rn(layer_4)
         
-        # En vez de pedirle resizes a tamaños específicos mediante 'size', 
-        # forzamos el uso de 'scale_factor' para que PyTorch trace un nodo 
-        # Resize basado puramente en ratios multiplicadores (scales) 
-        # libres por completo de dependencias de tensores en ONNX.
-        path_4 = self.scratch.refinenet4(layer_4_rn, size=None)
-        path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=None)
-        path_2 = self.scratch.refinenet2(path_3, layer_2_rn, size=None)
-        path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
+        if torch.onnx.is_in_onnx_export():
+            path_4 = self.scratch.refinenet4(layer_4_rn, size=None)
+            path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=None)
+            path_2 = self.scratch.refinenet2(path_3, layer_2_rn, size=None)
+            path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
+        else:
+            path_4 = self.scratch.refinenet4(layer_4_rn, size=layer_3_rn.shape[2:])
+            path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=layer_2_rn.shape[2:])
+            path_2 = self.scratch.refinenet2(path_3, layer_2_rn, size=layer_1_rn.shape[2:])
+            path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
         
         out = self.scratch.output_conv1(path_1)
         # scale_factor 1.75 ensures the output matches the input size regardless of 112 or 224
@@ -168,9 +170,8 @@ class DPT_DINOv2(nn.Module):
         self.depth_head = DPTHead(1, dim, features, use_bn, out_channels=out_channels, use_clstoken=use_clstoken, act_layer=act_layer)
         
     def forward(self, x):
-        # h, w = x.shape[-2:]
-        # Fijamos las dimensiones para la exportación estática a ESP32 (sin requerir onnxsim)
-        h, w = 112, 112
+        # Volvemos a hacerlo dinámico temporalmente para que funcione con 112 y 224
+        h, w = x.shape[-2:]
         
         features = self.pretrained.get_intermediate_layers(x, 4, return_class_token=True)
         

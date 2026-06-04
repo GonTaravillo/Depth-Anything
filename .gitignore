@@ -48,3 +48,8 @@ checkpoints/*.pth
 *.onnx.data
 # Keep ONNX model but maybe exclude heavy data if needed, 
 # although user wants reproducibility.
+*.onnx
+*.espdl
+*.tar.gz
+*.bin
+rpi_deploy/

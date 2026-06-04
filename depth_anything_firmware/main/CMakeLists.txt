@@ -1,6 +1,6 @@
 set(srcs    app_main.cpp)
 
-set(requires    esp-dl fatfs sdmmc vfs)
+set(requires    esp-dl fatfs sdmmc vfs esp_new_jpeg)
 
 idf_build_get_property(component_targets __COMPONENT_TARGETS)
 if ("___idf_espressif__esp-dl" IN_LIST component_targets)
@@ -21,4 +21,4 @@ idf_component_register(SRCS ${srcs}
                        REQUIRES ${requires})
 
 target_add_aligned_binary_data(${COMPONENT_LIB} "${embed_files}" BINARY)
-target_add_binary_data(${COMPONENT_LIB} "image.bin" BINARY)
+target_add_binary_data(${COMPONENT_LIB} "image0.bin" BINARY)

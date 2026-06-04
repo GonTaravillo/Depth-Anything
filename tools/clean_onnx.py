@@ -150,4 +150,8 @@ def clean_onnx(input_path, output_path):
     print(f"Saved to: {output_path}")
 
 if __name__ == "__main__":
-    clean_onnx('depth_anything_nano_epoch10_112x112.onnx', 'depth_anything_nano_epoch10_112x112.onnx')
+    import sys
+    if len(sys.argv) > 2:
+        clean_onnx(sys.argv[1], sys.argv[2])
+    else:
+        clean_onnx('depth_anything_nano_epoch10_112x112.onnx', 'depth_anything_nano_epoch10_112x112.onnx')

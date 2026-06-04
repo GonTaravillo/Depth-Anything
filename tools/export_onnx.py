@@ -48,6 +48,6 @@ def export_to_onnx(checkpoint_path, output_path):
     print("Export successful!")
 
 if __name__ == "__main__":
-    checkpoint = "checkpoints/depth_anything_nano_epoch_10.pth"
-    output_onnx = "depth_anything_nano_epoch10_112x112.onnx"
+    checkpoint = "checkpoints/depth_anything_nano_112x112_epoch_10.pth"
+    output_onnx = "depth_anything_nano_112x112_trained.onnx"
     export_to_onnx(checkpoint, output_onnx)
