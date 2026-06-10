@@ -82,14 +82,11 @@ static void get_heatmap_color(float v, uint8_t &r, uint8_t &g, uint8_t &b)
     b = inferno_lut[idx][2];
 }
 
-void run_depth_anything(const uint8_t* img_start, const uint8_t* img_end, const char* out_filename)
+void run_depth_anything(dl::Model *model, const uint8_t* img_start, const uint8_t* img_end, const char* out_filename)
 {
     // -----------------------------------------------------------------------
-    // 1. Load model
+    // 1. Get Model Inputs/Outputs
     // -----------------------------------------------------------------------
-    printf("Loading model from Flash...\n");
-    dl::Model *model = new dl::Model(
-        (const char *)model_espdl, fbs::MODEL_LOCATION_IN_FLASH_RODATA);
 
     std::map<std::string, dl::TensorBase *> model_inputs  = model->get_inputs();
     std::map<std::string, dl::TensorBase *> model_outputs = model->get_outputs();
@@ -99,15 +96,13 @@ void run_depth_anything(const uint8_t* img_start, const uint8_t* img_end, const 
     // -----------------------------------------------------------------------
     // 2. Load input image from Flash
     // -----------------------------------------------------------------------
-    const int width = 224, height = 224, channels = 3;
+    const int width = 112, height = 112, channels = 3;
     const int num_pixels = width * height * channels;
 
     printf("Allocating input buffer (%d floats) in SPIRAM...\n", num_pixels);
     float *input_data = (float *)heap_caps_malloc(
         num_pixels * sizeof(float), MALLOC_CAP_SPIRAM);
     if (!input_data) {
-        printf("ERROR: Failed to allocate input buffer.\n");
-        delete model;
         return;
     }
 
@@ -118,8 +113,6 @@ void run_depth_anything(const uint8_t* img_start, const uint8_t* img_end, const 
     if (image_size != expected_size) {
         printf("ERROR: Flash image size mismatch. Expected %u bytes, got %u bytes.\n",
                (unsigned)expected_size, (unsigned)image_size);
-        free(input_data);
-        delete model;
         return;
     }
     memcpy(input_data, img_start, expected_size);
@@ -161,8 +154,6 @@ void run_depth_anything(const uint8_t* img_start, const uint8_t* img_end, const 
     float *out_floats = (float *)heap_caps_malloc(
         output_elements * sizeof(float), MALLOC_CAP_SPIRAM);
     if (!out_floats) {
-        printf("ERROR: Failed to allocate output float buffer.\n");
-        delete model;
         return;
     }
 
@@ -199,14 +190,12 @@ void run_depth_anything(const uint8_t* img_start, const uint8_t* img_end, const 
     uint8_t *rgb_buf = (uint8_t *)jpeg_calloc_align(rgb_size, 16);
     if (!rgb_buf) {
         printf("ERROR: Failed to allocate RGB buffer.\n");
-        heap_caps_free(out_floats);
-        delete model;
         return;
     }
 
     for (int y = 0; y < out_h; y++) {
         for (int x = 0; x < out_w; x++) {
-            float norm = 1.0f - ((out_floats[y * out_w + x] - min_depth) / range);
+            float norm = (out_floats[y * out_w + x] - min_depth) / range;
             uint8_t r, g, b;
             get_heatmap_color(norm, r, g, b);
             int idx = (y * out_w + x) * 3;
@@ -230,8 +219,6 @@ void run_depth_anything(const uint8_t* img_start, const uint8_t* img_end, const 
 
     if (j_ret != JPEG_ERR_OK || jpeg_enc == NULL) {
         printf("ERROR: Could not open JPEG encoder (%d).\n", j_ret);
-        jpeg_free_align(rgb_buf);
-        delete model;
         return;
     }
 
@@ -274,16 +261,26 @@ void run_depth_anything(const uint8_t* img_start, const uint8_t* img_end, const 
 
     jpeg_enc_close(jpeg_enc);
     jpeg_free_align(rgb_buf);
-    delete model;
 }
 
 extern "C" void app_main(void)
 {
     printf("=== Depth Anything Nano – ESP32-S3-Korvo-2 ===\n");
     init_sdcard();   // failure is non-fatal: inference still runs
-    
-    printf("\n=== Running Image 0 ===\n");
-    run_depth_anything(image0_bin_start, image0_bin_end, "/sdcard/depth_out_0.jpg");
+    printf("Loading model from Flash...\n");
+    dl::Model *model = new dl::Model(
+        (const char *)model_espdl, fbs::MODEL_LOCATION_IN_FLASH_RODATA);
 
+    const uint8_t* img_starts[5] = {image0_bin_start, image1_bin_start, image2_bin_start, image3_bin_start, image4_bin_start};
+    const uint8_t* img_ends[5]   = {image0_bin_end, image1_bin_end, image2_bin_end, image3_bin_end, image4_bin_end};
+
+    for (int i = 0; i < 5; i++) {
+        char out_filename[64];
+        sprintf(out_filename, "/sdcard/depth_out_%d.jpg", i);
+        printf("\n=== Running Image %d ===\n", i);
+        run_depth_anything(model, img_starts[i], img_ends[i], out_filename);
+    }
+
+    delete model;
     printf("=== Done ===\n");
 }

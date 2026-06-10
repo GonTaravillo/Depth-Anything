@@ -22,3 +22,7 @@ idf_component_register(SRCS ${srcs}
 
 target_add_aligned_binary_data(${COMPONENT_LIB} "${embed_files}" BINARY)
 target_add_binary_data(${COMPONENT_LIB} "image0.bin" BINARY)
+target_add_binary_data(${COMPONENT_LIB} "image1.bin" BINARY)
+target_add_binary_data(${COMPONENT_LIB} "image2.bin" BINARY)
+target_add_binary_data(${COMPONENT_LIB} "image3.bin" BINARY)
+target_add_binary_data(${COMPONENT_LIB} "image4.bin" BINARY)
